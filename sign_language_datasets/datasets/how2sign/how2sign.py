@@ -121,34 +121,38 @@ class How2Sign(tfds.core.GeneratorBasedBuilder):
             ) for name, split in _SPLITS.items()
         ]
 
-    def _generate_examples(self, rgb_clips_front: str, rgb_clips_side: str, bfh_2d_front: str):
-        """ Yields examples. """
+    def _generate_examples(self, rgb_clips_front, rgb_clips_side, bfh_2d_front):
+        """ Yields examples, processing data from both front and side RGB clips and body feature data. """
 
-        # TODO get ids from translation file
-        ids = []
-        ids = [p[: -len("-rgb_front.mp4")] for p in os.listdir(path.join(rgb_clips_front, "raw_videos"))]
-        ids = ids[:10]
+        # Extract IDs from filenames (assuming filenames contain IDs and follow a consistent naming convention)
+        def extract_id_from_filename(filename):
+            # Example filename: --7E2sU6zP4-5-rgb_front.mp4
+            # Extract the ID before '-rgb_front'
+            return os.path.basename(filename).split('-rgb_front')[0]
 
-        for _id in ids:
-            datum = {
-                "id": _id,
-                "fps": 24,
+        # Extract ID from the front clip filename (assuming both front and side share the same ID structure)
+        _id = extract_id_from_filename(rgb_clips_front)
+
+        # Prepare data entry
+        datum = {
+            "id": _id,
+            "fps": 24,  # Assuming FPS is static; adjust this if necessary
+        }
+
+        # Add video paths directly
+        if self.builder_config.include_video:
+            datum["video"] = {
+                "front": rgb_clips_front,
+                "side": rgb_clips_side,
             }
 
-            if self.builder_config.include_video:
-                datum["video"] = {
-                    "front": path.join(rgb_clips_front, "raw_videos", _id + "-rgb_front.mp4"),
-                    "side": path.join(rgb_clips_side, "raw_videos", _id + "-rgb_side.mp4"),
-                }
-
-            if self._builder_config.include_pose == "openpose":
-                front_path = path.join(bfh_2d_front, "openpose_output", "json", _id + "-rgb_front")
-                front_pose = load_openpose_directory(front_path, fps=24, width=1280, height=720)
-
-                # TODO add side pose when available
-                # side_path = path.join(bfh_2d_side, 'openpose_output', 'json', _id + '-rgb_side')
-                # side_pose = load_openpose_directory(side_path, fps=24, width=1280, height=720)
-
+        # Handle pose data if configured to include it and if the file exists
+        if self._builder_config.include_pose == "openpose":
+            front_pose_path = os.path.join(bfh_2d_front, "openpose_output", "json", f"{_id}-rgb_front")
+            if os.path.exists(front_pose_path):
+                front_pose = load_openpose_directory(front_pose_path, fps=24, width=1280, height=720)
                 datum["pose"] = {"front": front_pose}
+            else:
+                datum["pose"] = {"front": None}  # Provide None if pose data is not available
 
-            yield _id, datum
+        yield _id, datum
