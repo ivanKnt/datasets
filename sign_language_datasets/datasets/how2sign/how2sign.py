@@ -2,6 +2,7 @@
 import os
 from itertools import chain
 from os import path
+import requests
 
 import tensorflow as tf
 import tensorflow_datasets as tfds
@@ -29,30 +30,40 @@ _CITATION = """
 
 _SPLITS = {
     tfds.Split.TRAIN: {
-        "rgb_clips_front": "https://drive.google.com/uc?id=1dYey1F_SeHets-UO8F9cE3VMhRBO-6e0&export=download",
-        "rgb_clips_side": "https://drive.google.com/uc?id=1PIYIIOxR2vnUDzSHdq3uyoUCoIJvsuNW&export=download",
-        "bfh_2d_front": "https://drive.google.com/uc?id=1lnsDN-LxcsroOmetdG5_sXYXZ7setlS4&export=download",
+        "rgb_clips_front": "https://drive.google.com/uc?id=1VX7n0jjW0pW3GEdgOks3z8nqE6iI6EnW&export=download",
+        "rgb_clips_side": "https://drive.google.com/uc?id=1oiw861NGp4CKKFO3iuHGSCgTyQ-DXHW7&export=download",
+        "bfh_2d_front": "https://drive.google.com/uc?id=1TBX7hLraMiiLucknM1mhblNVomO9-Y0r&export=download",
         "bfh_2d_side": None,
         "translation": None,
     },
     tfds.Split.VALIDATION: {
-        "rgb_clips_front": "https://drive.google.com/uc?id=1oVZyTWhHShyqshC2kUrfWnBF8apIR7Z1&export=download",
-        "rgb_clips_side": "https://drive.google.com/uc?id=1vJVV777_bmSeA2_k7iGdZu2izooeKUrq&export=download",
-        "bfh_2d_front": "https://drive.google.com/uc?id=1aOhRknNWj8APdxHmwJdQrMo5xuIGNXxM&export=download",
+        "rgb_clips_front": "https://drive.google.com/uc?id=1DhLH8tIBn9HsTzUJUfsEOGcP4l9EvOiO&export=download",
+        "rgb_clips_side": "https://drive.google.com/uc?id=1mxL7kJPNUzJ6zoaqJyxF1Krnjo4F-eQG&export=download",
+        "bfh_2d_front": "https://drive.google.com/uc?id=1JmEsU0GYUD5iVdefMOZpeWa_iYnmK_7w&export=download",
         "bfh_2d_side": None,
         "translation": None,
     },
     tfds.Split.TEST: {
-        "rgb_clips_front": "https://drive.google.com/uc?id=1d6GHqu0_8IGiKbu3sTZHtMb0DGhbHSMu&export=download",
-        "rgb_clips_side": "https://drive.google.com/uc?id=1gKV_TloCbMyMhOdYvr_a-6I-PTf0Sjyi&export=download",
-        "bfh_2d_front": "https://drive.google.com/uc?id=1quj8Ipm56pH65KAKK3Pc-sqZ0ozw2gSe&export=download",
+        "rgb_clips_front": "https://drive.google.com/uc?id=1qTIXFsu8M55HrCiaGv7vZ7GkdB3ubjaG&export=download",
+        "rgb_clips_side": "https://drive.google.com/uc?id=1j9v9P7UdMJ0_FVWg8H95cqx4DMSsrdbH&export=download",
+        "bfh_2d_front": "https://drive.google.com/uc?id=1g8tzzW5BNPzHXlamuMQOvdwlHRa-29Vp&export=download",
         "bfh_2d_side": None,
         "translation": None,
     },
 }
 
 _POSE_HEADERS = {"openpose": path.join(path.dirname(path.realpath(__file__)), "openpose.header")}
-
+def download_file_from_google_drive(url, session=None):
+    if session is None:
+        session = requests.Session()
+    response = session.get(url, stream=True)
+    for key, value in response.cookies.items():
+        if 'download_warning' in key:
+            token = value
+            url = url + "&confirm=" + token
+            response = session.get(url, stream=True)
+            break
+    return response
 
 class How2Sign(tfds.core.GeneratorBasedBuilder):
     """DatasetBuilder for how2sign dataset."""
@@ -91,25 +102,29 @@ class How2Sign(tfds.core.GeneratorBasedBuilder):
         )
 
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
-        """Returns SplitGenerators."""
+        """Returns SplitGenerators, integrating custom download logic."""
         dataset_warning(self)
+        session = requests.Session()
 
-        # Define what files are required to download
-        download_keys = []
-        if self._builder_config.include_video is not None:
-            download_keys += ["rgb_clips_front", "rgb_clips_side"]
-        if self._builder_config.include_pose is not None:
-            download_keys += ["bfh_2d_front", "bfh_2d_side"]
-
-        urls = chain.from_iterable([[split[k] for k in download_keys] for split in _SPLITS.values()])
-        urls = [url for url in urls if url is not None]
-
-        downloads = dl_manager.download_and_extract(urls)
-        url_map = {u: d for u, d in zip(urls, downloads)}  # Map local paths
+        downloads = {}
+        for split_name, split_dict in _SPLITS.items():
+            for key, url in split_dict.items():
+                if url is not None:
+                    if "drive.google.com" in url:
+                        response = download_file_from_google_drive(url, session)
+                        # Assuming the directory to save files is predefined or configurable
+                        file_path = path.join(dl_manager.download_dir, f"{split_name}_{key}.mp4")
+                        with open(file_path, "wb") as f:
+                            f.write(response.content)
+                        downloads[key] = file_path
+                    else:
+                        downloads[key] = dl_manager.download(url)
 
         return [
-            tfds.core.SplitGenerator(name=name, gen_kwargs={k: url_map[v] if v is not None else None for k, v in split.items()},)
-            for name, split in _SPLITS.items()
+            tfds.core.SplitGenerator(
+                name=name,
+                gen_kwargs={k: downloads[k] for k, v in split.items() if k in downloads},
+            ) for name, split in _SPLITS.items()
         ]
 
     def _generate_examples(self, rgb_clips_front: str, rgb_clips_side: str, bfh_2d_front: str, bfh_2d_side: str, translation: str):
