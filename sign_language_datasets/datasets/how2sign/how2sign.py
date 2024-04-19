@@ -33,22 +33,16 @@ _SPLITS = {
         "rgb_clips_front": "https://drive.google.com/uc?id=1VX7n0jjW0pW3GEdgOks3z8nqE6iI6EnW&export=download",
         "rgb_clips_side": "https://drive.google.com/uc?id=1oiw861NGp4CKKFO3iuHGSCgTyQ-DXHW7&export=download",
         "bfh_2d_front": "https://drive.google.com/uc?id=1TBX7hLraMiiLucknM1mhblNVomO9-Y0r&export=download",
-        "bfh_2d_side": None,
-        "translation": None,
     },
     tfds.Split.VALIDATION: {
         "rgb_clips_front": "https://drive.google.com/uc?id=1DhLH8tIBn9HsTzUJUfsEOGcP4l9EvOiO&export=download",
         "rgb_clips_side": "https://drive.google.com/uc?id=1mxL7kJPNUzJ6zoaqJyxF1Krnjo4F-eQG&export=download",
         "bfh_2d_front": "https://drive.google.com/uc?id=1JmEsU0GYUD5iVdefMOZpeWa_iYnmK_7w&export=download",
-        "bfh_2d_side": None,
-        "translation": None,
     },
     tfds.Split.TEST: {
         "rgb_clips_front": "https://drive.google.com/uc?id=1qTIXFsu8M55HrCiaGv7vZ7GkdB3ubjaG&export=download",
         "rgb_clips_side": "https://drive.google.com/uc?id=1j9v9P7UdMJ0_FVWg8H95cqx4DMSsrdbH&export=download",
         "bfh_2d_front": "https://drive.google.com/uc?id=1g8tzzW5BNPzHXlamuMQOvdwlHRa-29Vp&export=download",
-        "bfh_2d_side": None,
-        "translation": None,
     },
 }
 
@@ -127,7 +121,7 @@ class How2Sign(tfds.core.GeneratorBasedBuilder):
             ) for name, split in _SPLITS.items()
         ]
 
-    def _generate_examples(self, rgb_clips_front: str, rgb_clips_side: str, bfh_2d_front: str, bfh_2d_side: str, translation: str):
+    def _generate_examples(self, rgb_clips_front: str, rgb_clips_side: str, bfh_2d_front: str):
         """ Yields examples. """
 
         # TODO get ids from translation file
