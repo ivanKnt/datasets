@@ -50,11 +50,11 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
 
 
 
-    def __init__(self):
-        # Determine the script's directory
-        script_dir = os.path.dirname(os.path.realpath(__file__))
-        # Set the base path to the 'assets' directory relative to the script directory
-        self.base_path = os.path.join(script_dir, 'assets')
+
+    # Determine the script's directory
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    # Set the base path to the 'assets' directory relative to the script directory
+    base_path = os.path.join(script_dir, 'assets')
 
 
     def _info(self) -> tfds.core.DatasetInfo:
