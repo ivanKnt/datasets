@@ -2,7 +2,7 @@
 # from .asl_lex import AslLex
 # from .autsl import AUTSL
 # from .chicago_fs_wild import ChicagoFSWild
-# from .config import SignDatasetConfig
+from .config import SignDatasetConfig
 # from .dgs_types import DgsTypes
 # from .dgs_corpus import DgsCorpus
 # from .dicta_sign import DictaSign
