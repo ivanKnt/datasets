@@ -100,9 +100,10 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
         csv_data = self._download_csv_and_remove_header()
 
         for i, row_val in enumerate(csv_data):
+            video_code = row_val[1].replace('.mp4', '')
             datum = {
                 "id": str(i),
-                "video_code": 5,  #Logic to gather video code here
+                "video_code": video_code,
                 "text": row_val[2],
                 "signer_id": row_val[0],
                 "asl_lex_code": row_val[3],
