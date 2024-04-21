@@ -1,18 +1,12 @@
 """ASL Citizen - A Community-Sourced Dataset for Advancing Isolated Sign Language Recognition"""
 import csv
-import tarfile
+
 from os import path
+import requests
 
-import numpy as np
-
-import tensorflow as tf
+from io import StringIO
 import tensorflow_datasets as tfds
 
-from pose_format import Pose
-from pose_format import Pose, PoseHeader
-from pose_format.numpy import NumPyPoseBody
-from pose_format.pose_header import PoseHeaderDimensions
-from pose_format.utils.holistic import holistic_components
 
 from sign_language_datasets.utils.features import PoseFeature
 
@@ -33,7 +27,6 @@ _CITATION = """
 """
 
 _DOWNLOAD_URL = 'https://download.microsoft.com/download/b/8/8/b88c0bae-e6c1-43e1-8726-98cf5af36ca4/ASL_Citizen.zip'
-
 
 _POSE_URLS = {
     "holistic": cloud_bucket_file("poses/holistic/ASLCitizen.zip"),
@@ -82,25 +75,39 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
             citation=_CITATION,
         )
 
+    def _download_csv_and_remove_header(self):
+        # Send a GET request to the URL
+        url = "https://www.mediafire.com/file/9md24gieos6w3cv/train.csv/file"
+        response = requests.get(url)
+        response.raise_for_status()  # Ensure the request was successful
+
+        # Decode the content to text and use StringIO to treat it as a file-like object
+        content = StringIO(response.content.decode('utf-8'))
+
+        # Read the CSV file, removing the header
+        csv_data = csv.reader(content, delimiter=",")
+        next(csv_data)  # Skip the header
+
+        # Collect all rows into a list
+        return list(csv_data)
+
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
         """Returns SplitGenerators."""
         dataset_warning(self)
 
 
         data = []
-        with GFile(path.join(archive_path, 'ASL_Citizen', 'splits', f"{split}.csv"), "r") as csv_file:
-            csv_data = csv.reader(csv_file, delimiter=",")
-            next(csv_data)  # Ignore the header
+        csv_data = self._download_csv_and_remove_header()
 
-            for i, row in enumerate(csv_data):
-                datum = {
-                    "id": str(i),
-                    "video_code": 5,  #Logic to gather video code here
-                    "text": row[2],
-                    "signer_id": row[0],
-                    "asl_lex_code": row[3],
-                }
-                data.append(datum)
+        for i, row_val in enumerate(csv_data):
+            datum = {
+                "id": str(i),
+                "video_code": 5,  #Logic to gather video code here
+                "text": row_val[2],
+                "signer_id": row_val[0],
+                "asl_lex_code": row_val[3],
+            }
+            data.append(datum)
 
 
         #download video if requested
