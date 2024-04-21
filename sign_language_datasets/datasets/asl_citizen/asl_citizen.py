@@ -47,6 +47,16 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
         SignDatasetConfig(name="default", include_pose='holistic',include_video=False),
     ]
 
+
+
+
+    def __init__(self):
+        # Determine the script's directory
+        script_dir = os.path.dirname(os.path.realpath(__file__))
+        # Set the base path to the 'assets' directory relative to the script directory
+        self.base_path = os.path.join(script_dir, 'assets')
+
+
     def _info(self) -> tfds.core.DatasetInfo:
         """Returns the dataset metadata."""
 
@@ -75,8 +85,6 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
             supervised_keys=None,
             citation=_CITATION,
         )
-
-    base_path = "assets"
 
     def _load_csv_and_remove_header(self):
         # Construct the full path to the CSV file
