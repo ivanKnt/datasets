@@ -20,6 +20,6 @@ from .signsuisse import SignSuisse
 # from .bsl_corpus import BslCorpus
 # from .wmt_slt import WMTSLT
 #from .asl_signs import ASLSigns
-from .sem_lex import SemLex
+#from .sem_lex import SemLex
 from .asl_citizen import ASLCitizen
 #from .spread_the_sign import SpreadTheSign
