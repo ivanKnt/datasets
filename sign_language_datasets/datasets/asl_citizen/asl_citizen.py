@@ -7,7 +7,6 @@ import numpy as np
 
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from tensorflow.io.gfile import GFile
 
 from pose_format import Pose
 from pose_format import Pose, PoseHeader
@@ -51,7 +50,7 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
     }
 
     BUILDER_CONFIGS = [
-        SignDatasetConfig(name="default", include_pose='holistic'),
+        SignDatasetConfig(name="default", include_pose='holistic',include_video=False),
     ]
 
     def _info(self) -> tfds.core.DatasetInfo:
@@ -59,6 +58,7 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
 
         features = {
             "id": tfds.features.Text(),
+            "video_code": tfds.features.Text(),
             "text": tfds.features.Text(),
             "signer_id": tfds.features.Text(),
             "asl_lex_code": tfds.features.Text(),
@@ -86,18 +86,8 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
         """Returns SplitGenerators."""
         dataset_warning(self)
 
-        archive = dl_manager.download_and_extract(_DOWNLOAD_URL)
-        poses_dir = str(dl_manager.download_and_extract(_POSE_URLS['holistic']))
 
-        return [
-            tfds.core.SplitGenerator(name=tfds.Split.TRAIN, gen_kwargs={"archive_path": archive, "split": "train", "poses_dir": poses_dir}),
-            tfds.core.SplitGenerator(name=tfds.Split.VALIDATION, gen_kwargs={"archive_path": archive, "split": "val", "poses_dir": poses_dir}),
-            tfds.core.SplitGenerator(name=tfds.Split.TEST, gen_kwargs={"archive_path": archive, "split": "test", "poses_dir": poses_dir}),
-        ]
-
-    def _generate_examples(self, archive_path: str, split: str, poses_dir: str):
-        """ Yields examples. """
-
+        data = []
         with GFile(path.join(archive_path, 'ASL_Citizen', 'splits', f"{split}.csv"), "r") as csv_file:
             csv_data = csv.reader(csv_file, delimiter=",")
             next(csv_data)  # Ignore the header
@@ -105,20 +95,35 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
             for i, row in enumerate(csv_data):
                 datum = {
                     "id": str(i),
+                    "video_code": 5,  #Logic to gather video code here
                     "text": row[2],
                     "signer_id": row[0],
                     "asl_lex_code": row[3],
                 }
+                data.append(datum)
 
-                if self.builder_config.include_pose is not None:
-                    if self.builder_config.include_pose == "holistic":
-                        mediapipe_path = path.join(poses_dir, 'poses', row[1].replace('.mp4', '.pose'))
 
-                        if path.exists(mediapipe_path):
-                            with open(mediapipe_path, "rb") as f:
-                                pose = Pose.read(f.read())
-                                datum["pose"] = pose
-                        else:
-                            datum["pose"] = None
+        #download video if requested
+        if self._builder_config.include_video:
+            archive = dl_manager.download_and_extract(_DOWNLOAD_URL)
+            print("no videos available for now ..")
 
-                yield datum['id'], datum
+
+
+
+        if self._builder_config.include_pose:
+            poses_dir = str(dl_manager.download_and_extract(_POSE_URLS['holistic']))
+            for datum in data:
+                pose_file = path.join(poses_dir, 'poses', datum["video_code"]+'.pose')
+                datum["pose"] = pose_file if pose_file.exists() else None
+
+
+
+
+        return {"train": self._generate_examples(data)}
+
+    def _generate_examples(self, data):
+        """ Yields examples. """
+        for datum in data:
+            yield datum["id"],datum
+
