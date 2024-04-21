@@ -72,8 +72,8 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
 
         if self._builder_config.include_pose == "holistic":
             pose_header_path = _POSE_HEADERS[self._builder_config.include_pose]
-            stride = 1 if self._builder_config.fps is None else 30 / self._builder_config.fps
-            features["pose"] = PoseFeature(shape=(None, 1, 576, 3),
+            stride = 1 if self._builder_config.fps is None else 25 / self._builder_config.fps
+            features["pose"] = PoseFeature(shape=(None, 1, 543, 3),
                                            header_path=pose_header_path,
                                            stride=stride)
 
