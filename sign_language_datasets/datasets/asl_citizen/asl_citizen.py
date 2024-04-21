@@ -131,9 +131,9 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
 
 
         if self._builder_config.include_pose:
-            poses_dir = str(dl_manager.download_and_extract(_POSE_URLS['holistic']))
+            poses_dir = dl_manager.download_and_extract(_POSE_URLS['holistic'])
             for datum in data:
-                pose_file = path.join(poses_dir, 'poses', datum["video_code"]+'.pose')
+                pose_file = poses_dir.joinpath('poses', datum["video_code"]+'.pose')
                 datum["pose"] = pose_file if pose_file.exists() else None
 
 
