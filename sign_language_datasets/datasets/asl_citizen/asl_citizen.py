@@ -3,6 +3,7 @@ import csv
 
 from os import path
 import requests
+import os
 
 from io import StringIO
 import tensorflow_datasets as tfds
@@ -75,40 +76,42 @@ class ASLCitizen(tfds.core.GeneratorBasedBuilder):
             citation=_CITATION,
         )
 
-    def _download_csv_and_remove_header(self):
-        # Send a GET request to the URL
-        url = "https://www.mediafire.com/file/9md24gieos6w3cv/train.csv/file"
-        response = requests.get(url)
-        response.raise_for_status()  # Ensure the request was successful
+    base_path = "assets"
 
-        # Decode the content to text and use StringIO to treat it as a file-like object
-        content = StringIO(response.content.decode('utf-8'))
+    def _load_csv_and_remove_header(self):
+        # Construct the full path to the CSV file
+        csv_path = os.path.join(self.base_path, 'train.csv')
 
-        # Read the CSV file, removing the header
-        csv_data = csv.reader(content, delimiter=",")
-        next(csv_data)  # Skip the header
+        # Open and read the CSV file, removing the header
+        with open(csv_path, 'r', newline='', encoding='utf-8') as csvfile:
+            csv_reader = csv.reader(csvfile, delimiter=",")
+            next(csv_reader)  # Skip the header
 
-        # Collect all rows into a list
-        return list(csv_data)
+            # Collect all rows into a list
+            return list(csv_reader)
 
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
         """Returns SplitGenerators."""
         dataset_warning(self)
 
 
+        """Processes CSV data into a usable format."""
         data = []
-        csv_data = self._download_csv_and_remove_header()
+        csv_data = self._load_csv_and_remove_header()
 
         for i, row_val in enumerate(csv_data):
-            video_code = row_val[1].replace('.mp4', '')
-            datum = {
-                "id": str(i),
-                "video_code": video_code,
-                "text": row_val[2],
-                "signer_id": row_val[0],
-                "asl_lex_code": row_val[3],
-            }
-            data.append(datum)
+            if len(row_val) >= 4:  # Ensure there are enough columns
+                video_code = row_val[1].replace('.mp4', '')  # Clean the video code
+                datum = {
+                    "id": str(i),
+                    "video_code": video_code,
+                    "text": row_val[2],
+                    "signer_id": row_val[0],
+                    "asl_lex_code": row_val[3],
+                }
+                data.append(datum)
+            else:
+                print(f"Row {i} skipped due to insufficient columns: {row_val}")
 
 
         #download video if requested
